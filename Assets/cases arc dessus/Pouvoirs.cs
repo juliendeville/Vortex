@@ -31,10 +31,11 @@ public class Pouvoirs : MonoBehaviour {
 			point.z = 0;
 			
 			//limiter la zone au dessus du joueur et à un rayon de 'distance'
-			if( (player.position - point).magnitude < distance ){
-	        	Instantiate(plateforme, point,  Quaternion.identity);
+			//if( (player.position - point).magnitude < distance ){
+	        	platform nouvellePlateforme = Instantiate(plateforme, point,  Quaternion.identity) as platform;
+				//nouvellePlateforme.theCamera = theCamera;
 				nbPlatforms++;
-			}
+			//}
 		}
 	}
 }

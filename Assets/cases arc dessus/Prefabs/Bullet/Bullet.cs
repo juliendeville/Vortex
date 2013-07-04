@@ -27,6 +27,7 @@ public class Bullet : MonoBehaviour {
 	
     void OnTriggerEnter(Collider other) {
 		if( other.gameObject.tag == "platform" ) {
+			other.gameObject.GetComponent<platform>().triggered = true;
         	Destroy(other.gameObject);
 		}
     }

@@ -53,18 +53,18 @@ public class controls : MonoBehaviour {
 			mustJumpInAir = false;
 		}
 		if( air /*&& rigidbody.velocity.y < 0*/ ) {
-			rigidbody.AddForce( ( addHorizontalForce * HorizontalAerialMaxVelocity - rigidbody.velocity.x)/Time.fixedDeltaTime, 0,0);
+			rigidbody.AddForce( ( addHorizontalForce * HorizontalAerialMaxVelocity - rigidbody.velocity.x )/Time.fixedDeltaTime, 0,0);
 		} else {
-			rigidbody.AddForce( ( addHorizontalForce * HorizontalMaxVelocity - rigidbody.velocity.x)/Time.fixedDeltaTime, 0,0);
+			rigidbody.AddForce( ( addHorizontalForce * HorizontalMaxVelocity - rigidbody.velocity.x )/Time.fixedDeltaTime, 0,0);
+			if( addHorizontalForce * HorizontalAerialMaxVelocity - rigidbody.velocity.x > 0.1 || addHorizontalForce * HorizontalAerialMaxVelocity - rigidbody.velocity.x < -0.1 )
+				Debug.Log( addHorizontalForce * HorizontalAerialMaxVelocity - rigidbody.velocity.x );
 		}
-		if( rigidbody.velocity.x > HorizontalAerialMaxVelocity )
-			Debug.Log( rigidbody.velocity.x );
+		CanJump();
+		CanMove();
 	}
 	
 	// Update is called once per frame
 	void Update () {
-		CanJump();
-		CanMove();
 		/*if( transform.position.y >10 )*/
 			theCamera.transform.position = new Vector3( 0, 9 + transform.position.y - 10, -15 );
 		/*else
@@ -78,7 +78,7 @@ public class controls : MonoBehaviour {
 				if( !jumping ) {
 					wasAir = air;
 				} else {
-					timeJumpingLeft -= Time.deltaTime;
+					timeJumpingLeft -= Time.fixedDeltaTime;
 				}
 				if( !wasAir ) {
 					mustJumpNormal = true;
@@ -96,7 +96,7 @@ public class controls : MonoBehaviour {
 				jumping = false;
 			}
 		} else {
-			cooldownJumpingLast -= Time.deltaTime;
+			cooldownJumpingLast -= Time.fixedDeltaTime;
 		}
 	}
 	
@@ -139,7 +139,6 @@ public class controls : MonoBehaviour {
 				Vector3 posBullet = theCollision.gameObject.transform.position;
 				posBullet.x += theCollision.gameObject.transform.localScale.x / 2;
 	        	Instantiate(bullet, posBullet,  Quaternion.identity);
-				theCollision.gameObject.GetComponent<platform>().triggered = true;
 				
 				Destroy( theCollision.gameObject );
 			}
@@ -148,7 +147,6 @@ public class controls : MonoBehaviour {
 				posBullet.x -= theCollision.gameObject.transform.localScale.x / 2;
 	        	Bullet balle = Instantiate(bullet, posBullet,  Quaternion.identity) as Bullet;
 				balle.direction = -1;
-				theCollision.gameObject.GetComponent<platform>().triggered = true;
 				
 				Destroy( theCollision.gameObject );
 			}
@@ -156,6 +154,7 @@ public class controls : MonoBehaviour {
 	        	Ground();
 			}
 			if( bas ) {
+				theCollision.gameObject.GetComponent<platform>().triggered = true;
 				Destroy( theCollision.gameObject );
 			}
 			
@@ -181,10 +180,12 @@ public class controls : MonoBehaviour {
 		nbJumpLeft = nbJumpMax;
 		air = false;
 		timeJumpingLeft = timeJumpingMax;
+		cooldownJumpingLast = 0;
 	}
 	
 	void JumpNormal() {
 		rigidbody.AddForce(0,(JumpMaxVelocity - rigidbody.velocity.y)/Time.fixedDeltaTime,0);
+		Debug.Log("Jump");
 	}
 	
 	void JumpInAir() {
