@@ -16,6 +16,7 @@ public class Pouvoirs : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
+		/*
 		Vector2 position = Vector2.zero;
 		for (var i = 0; i < Input.touchCount; ++i) {
             if (Input.GetTouch(i).phase == TouchPhase.Began) {
@@ -27,7 +28,7 @@ public class Pouvoirs : MonoBehaviour {
 		}
 		if( position != Vector2.zero && nbPlatforms < nbPlatformMax ) {
 			Ray ray = theCamera.ScreenPointToRay( position );    
-    		Vector3 point = ray.origin + (ray.direction * theCamera.transform.position.z );  
+    		Vector3 point =  ( ray.origin + (ray.direction * -theCamera.transform.position.z ) );  
 			point.z = 0;
 			
 			//limiter la zone au dessus du joueur et à un rayon de 'distance'
@@ -37,5 +38,6 @@ public class Pouvoirs : MonoBehaviour {
 				nbPlatforms++;
 			//}
 		}
+		*/
 	}
 }

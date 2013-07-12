@@ -32,6 +32,7 @@ public class controls : MonoBehaviour {
 	
 	//collisiton platforme
 	public float seuil = 0.31f;
+	public float smoothingFactor = 0.5f;
 	
 	public Bullet bullet;
 	public BigBullet bigBullet;
@@ -53,11 +54,20 @@ public class controls : MonoBehaviour {
 			mustJumpInAir = false;
 		}
 		if( air /*&& rigidbody.velocity.y < 0*/ ) {
-			rigidbody.AddForce( ( addHorizontalForce * HorizontalAerialMaxVelocity - rigidbody.velocity.x )/Time.fixedDeltaTime, 0,0);
+			//rigidbody.velocity = new Vector3( addHorizontalForce * HorizontalAerialMaxVelocity, rigidbody.velocity.y, 0 );
+			//rigidbody.AddForce( ( addHorizontalForce * HorizontalAerialMaxVelocity - rigidbody.velocity.x )/Time.fixedDeltaTime, 0,0);
+			Vector3 tvel = new Vector3( addHorizontalForce * HorizontalAerialMaxVelocity, rigidbody.velocity.y, 0 );
+			rigidbody.velocity = Vector3.Lerp( rigidbody.velocity, tvel, Time.deltaTime * smoothingFactor);
+			//rigidbody.AddForce( ( addHorizontalForce * HorizontalMaxVelocity - rigidbody.velocity.x )/Time.fixedDeltaTime, 0,0);
+			if( addHorizontalForce * HorizontalAerialMaxVelocity > 0.1 || addHorizontalForce * HorizontalAerialMaxVelocity < -0.1 )
+				Debug.Log( rigidbody.velocity.x );
 		} else {
-			rigidbody.AddForce( ( addHorizontalForce * HorizontalMaxVelocity - rigidbody.velocity.x )/Time.fixedDeltaTime, 0,0);
-			if( addHorizontalForce * HorizontalAerialMaxVelocity - rigidbody.velocity.x > 0.1 || addHorizontalForce * HorizontalAerialMaxVelocity - rigidbody.velocity.x < -0.1 )
-				Debug.Log( addHorizontalForce * HorizontalAerialMaxVelocity - rigidbody.velocity.x );
+			
+			Vector3 tvel = new Vector3( addHorizontalForce * HorizontalMaxVelocity, rigidbody.velocity.y, 0 );
+			rigidbody.velocity = Vector3.Lerp( rigidbody.velocity, tvel, Time.deltaTime * smoothingFactor);
+			//rigidbody.AddForce( ( addHorizontalForce * HorizontalMaxVelocity - rigidbody.velocity.x )/Time.fixedDeltaTime, 0,0);
+			if( addHorizontalForce * HorizontalMaxVelocity > 0.1 || addHorizontalForce * HorizontalMaxVelocity < -0.1 )
+				Debug.Log( rigidbody.velocity.x );
 		}
 		CanJump();
 		CanMove();
@@ -66,7 +76,7 @@ public class controls : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 		/*if( transform.position.y >10 )*/
-			theCamera.transform.position = new Vector3( 0, 9 + transform.position.y - 10, -15 );
+			theCamera.transform.position = new Vector3( transform.position.x, 2 + transform.position.y, -20 );
 		/*else
 			theCamera.transform.position = new Vector3( 0, 9, -15 );
 		*/
@@ -184,12 +194,12 @@ public class controls : MonoBehaviour {
 	}
 	
 	void JumpNormal() {
-		rigidbody.AddForce(0,(JumpMaxVelocity - rigidbody.velocity.y)/Time.fixedDeltaTime,0);
+		rigidbody.AddForce(0,(JumpMaxVelocity - rigidbody.velocity.y)/Time.fixedDeltaTime,0,ForceMode.Acceleration);
 		Debug.Log("Jump");
 	}
 	
 	void JumpInAir() {
-		rigidbody.AddForce(0,(JumpMaxVelocity - rigidbody.velocity.y)/Time.fixedDeltaTime * (nbJumpMax-nbJumpLeft+1) * ratioPerJump,0);
+		rigidbody.AddForce(0,(JumpMaxVelocity - rigidbody.velocity.y)/Time.fixedDeltaTime * (nbJumpMax-nbJumpLeft+1) * ratioPerJump,0,ForceMode.Acceleration);
 		//air = true;
 	}
 }

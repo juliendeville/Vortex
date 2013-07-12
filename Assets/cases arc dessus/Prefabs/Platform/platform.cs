@@ -32,15 +32,15 @@ public class platform : MonoBehaviour {
 	}
 	
     void OnBecameInvisible() {
-		Debug.Log( "invisible");
         Destroy( gameObject );
     }
 	
 	
 	void OnDestroy () {
 		if (Application.isPlaying) {
-			background.GetComponent<Pouvoirs>().nbPlatforms--;
-			Debug.Log( "destroyed");
+			Pouvoirs pouv = background.GetComponent<Pouvoirs>();
+			if( pouv != null )
+				pouv.nbPlatforms--;
 			if( triggered ) {
 				//destroyed
 				Vector3 posBullet = transform.position;
