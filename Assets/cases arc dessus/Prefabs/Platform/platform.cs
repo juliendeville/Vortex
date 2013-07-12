@@ -4,13 +4,16 @@ using System.Collections;
 public class platform : MonoBehaviour {
 	
 	private GameObject background;
-	public BigBullet bigBullet;
 	
 	//public float timeBeforeDestroy = 5f;
 	//private float timeLeft;
 	
 	public bool triggered = false;
+	public int directionV = 0;
+	public int directionH = 0;
 	
+	public Bullet bullet;
+	public BigBullet bigBullet;
 	
 
 	// Use this for initialization
@@ -37,15 +40,22 @@ public class platform : MonoBehaviour {
 	
 	
 	void OnDestroy () {
-		if (Application.isPlaying) {
+		if (Application.isPlaying && background != null) {
 			Pouvoirs pouv = background.GetComponent<Pouvoirs>();
 			if( pouv != null )
 				pouv.nbPlatforms--;
 			if( triggered ) {
 				//destroyed
 				Vector3 posBullet = transform.position;
-				posBullet.y += transform.localScale.y / 2;
-		    	Instantiate(bigBullet, posBullet,  Quaternion.identity);
+				if( directionH != 0 ) {
+					posBullet.x += directionH * transform.localScale.x / 2;
+		        	Bullet balle = Instantiate(bullet, posBullet,  Quaternion.identity) as Bullet;
+					balle.direction = directionH;
+				} else {
+					posBullet.y += directionV * transform.localScale.y / 2;
+			    	BigBullet balle = Instantiate(bigBullet, posBullet,  Quaternion.identity) as BigBullet;
+					balle.direction = directionV;
+				}
 			}
 	   }
     }

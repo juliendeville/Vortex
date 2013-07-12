@@ -17,17 +17,18 @@ public class Bullet : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		transform.Translate( Time.deltaTime * speed * direction, 0,0);
+		transform.Translate( Time.deltaTime * speed * direction, 0, 0 );
 		timeLeft -= Time.deltaTime;
 		if( timeLeft < 0 ){
 			Destroy( gameObject );
 		}
-		transform.localScale = new Vector3( transform.localScale.x + transform.localScale.x * growth * Time.deltaTime, transform.localScale.y + transform.localScale.y * growth * Time.deltaTime, transform.localScale.z );
+		//transform.localScale = new Vector3( transform.localScale.x + transform.localScale.x * growth * Time.deltaTime, transform.localScale.y + transform.localScale.y * growth * Time.deltaTime, transform.localScale.z );
 	}
 	
     void OnTriggerEnter(Collider other) {
 		if( other.gameObject.tag == "platform" ) {
 			other.gameObject.GetComponent<platform>().triggered = true;
+			other.gameObject.GetComponent<platform>().directionV = direction;
         	Destroy(other.gameObject);
 		}
     }
