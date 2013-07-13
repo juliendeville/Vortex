@@ -37,9 +37,6 @@ public class controls : MonoBehaviour {
 	public Bullet bullet;
 	public BigBullet bigBullet;
 	
-	private int pathId = -1;
-	private Vector3[] myPoints;
-
 	// Use this for initialization
 	void Start () {
 		//iTween.Init( gameObject );
@@ -82,6 +79,7 @@ public class controls : MonoBehaviour {
 		/*else
 			theCamera.transform.position = new Vector3( 0, 9, -15 );
 		*/
+		/*
 		if( theCamera != null ) {
 			myPoints = theCamera.GetComponent<DrawPath>().myPoints;
 			bool endPoint = theCamera.GetComponent<DrawPath>().endPoint;
@@ -90,10 +88,6 @@ public class controls : MonoBehaviour {
 				rigidbody.useGravity = false;
 				rigidbody.velocity = Vector3.zero;
 				if( endPoint ) {
-					//float t = 0f;
-					
-					//iTween.MoveTo(gameObject, myPoints, 1 );
-					
 					if( pathId < 0 || (myPoints[pathId] - transform.position).sqrMagnitude< 0.01 ){
 						pathId++;
 							
@@ -103,21 +97,7 @@ public class controls : MonoBehaviour {
 							endPoint = false;
 							pathId = -1;
 						}
-						/*
-						Debug.Log( "-->pathId ");
-						Debug.Log( pathId );
-						Debug.Log( "transform.position");
-						Debug.Log( transform.position);
-						*/
-						//iTween.MoveBy(gameObject, myPoints[pathId] - transform.position , 1 );
-						//iTween.Hash("position", (myPoints[pathId] - transform.position), "easeType", "easeInOutExpo", "speed", 1.0f)
 					}
-					/*
-					Debug.Log( "-->pathId ");
-					Debug.Log( pathId );
-					Debug.Log( "endPoint");
-					Debug.Log( endPoint?"true":"false" );
-					*/
 					if( endPoint ) {
 						//transform.position = new Vector3( transform.position.x, transform.position.y + 0.1f, 0f);
 						transform.position = Vector3.MoveTowards( transform.position, myPoints[pathId], 0.1f);
@@ -135,9 +115,47 @@ public class controls : MonoBehaviour {
 			}
 			//enable gravity when movement ended
 		}
+		*/
 	}
 	
+	/*
+	void AddPoint()
+	{
+	    int j = 0;
+	    Vector3[] tempPoints;
 	
+	    if ( myPoints == null || myPoints.Length < 1 )
+	        tempPoints = new Vector3[1];
+	    else
+	    {
+	        tempPoints = new Vector3[ myPoints.Length + 1 ];
+	
+	        for( j = 0; j < myPoints.Length; j++)
+	            tempPoints[j] = myPoints[j];
+	    }
+	
+	    Vector3 tempPos = Vector3.zero;
+		foreach( Touch touch in Input.touches ) {
+			if( touch.fingerId == idTouch ) {
+				tempPos = touch.position;
+			}
+		}
+		
+		if( tempPos != Vector3.zero ) {
+		    tempPos.z = 10;    
+		    Vector3 temp = Camera.main.ScreenToWorldPoint( tempPos );
+			temp = new Vector3( ( temp.x ),( temp.y ), 0 );//Mathf.Round( temp.x ), Mathf.Round( temp.y ), 0 );
+			if( temp.x == tempPoints[ tempPoints.Length - 1 ].y && temp.y == tempPoints[ tempPoints.Length - 1 ].y ) {
+				//do nothing
+			} else {
+				tempPoints[j] = temp;
+			    myPoints = new Vector3[ tempPoints.Length ]; 
+			    myPoints = tempPoints; 
+			}
+		}
+	}
+	
+	*/
 	void OnDrawGizmos(){
 		
 		if( theCamera != null ) {
