@@ -97,9 +97,10 @@ public class DrawPath : MonoBehaviour {
 		//Debug.Log( "given " + (coteGiven.haut?"haut ":"/haut ") + (coteGiven.bas?"bas ":"/bas ") + (coteGiven.gauche?"gauche ":"/gauche ") +(coteGiven.droite?"droite ":"/droite ") + " gravCote : " + coteGiven.gravity + " gravActual : " + gravityState   );
 		Cote cotetemp = new Cote( 0, false, false, false, false );
 
-		coteGiven.gravity = ( gravityState - coteGiven.gravity + 4 ) % 4;
+		//coteGiven.gravity = ( coteGiven.gravity - gravityState + 4 ) % 4;
 		//Debug.Log( "grav final : " + coteGiven.gravity );
 		
+		coteGiven.gravity = gravityState;
 		//rotation selon la gravité
 		if( ( coteGiven.haut && coteGiven.gravity == 0 ) || ( coteGiven.bas && coteGiven.gravity == 2 ) || ( coteGiven.droite && coteGiven.gravity == 3 ) || ( coteGiven.gauche && coteGiven.gravity == 1 ) )
 			cotetemp.haut = true;
@@ -109,22 +110,22 @@ public class DrawPath : MonoBehaviour {
 			cotetemp.droite = true;
 		if( ( coteGiven.haut && coteGiven.gravity == 3 ) || ( coteGiven.bas && coteGiven.gravity == 1 ) || ( coteGiven.droite && coteGiven.gravity == 2 ) || ( coteGiven.gauche && coteGiven.gravity == 0 ) )
 			cotetemp.gauche = true;
-		
+		cotetemp.gravity = gravityState;
 		//Debug.Log( "returned " + (cotetemp.haut?"haut ":"/haut ") + (cotetemp.bas?"bas ":"/bas ") + (cotetemp.gauche?"gauche ":"/gauche ") +(cotetemp.droite?"droite ":"/droite ")  );
 		return cotetemp;
 	}
 	
 	public void Set( Cote coteGiven ) {
-		Cote coteTemp = CoteWithGravity( coteGiven );
+		Cote coteTemp = coteGiven;//CoteWithGravity( coteGiven );
 		cote.haut = coteTemp.haut;
 		cote.bas = coteTemp.bas;
 		cote.gauche = coteTemp.gauche;
 		cote.droite = coteTemp.droite;
-		//Debug.Log( "SetcurrentState " + (cote.haut?"haut ":"/haut ") + (cote.bas?"bas ":"/bas ") + (cote.gauche?"gauche ":"/gauche ") +(cote.droite?"droite ":"/droite ")  );
+		Debug.Log( "SetcurrentState " + (cote.haut?"haut ":"/haut ") + (cote.bas?"bas ":"/bas ") + (cote.gauche?"gauche ":"/gauche ") +(cote.droite?"droite ":"/droite ")  );
 	}
 	
 	public void Add( Cote coteGiven ) {
-		Cote coteTemp = CoteWithGravity( coteGiven );
+		Cote coteTemp = coteGiven;//CoteWithGravity( coteGiven );
 		if( coteTemp.haut )
 			cote.haut = true;
 		if( coteTemp.bas )
@@ -133,11 +134,11 @@ public class DrawPath : MonoBehaviour {
 			cote.gauche = true;
 		if( coteTemp.droite )
 			cote.droite = true;
-		//Debug.Log( "AddcurrentState " + (cote.haut?"haut ":"/haut ") + (cote.bas?"bas ":"/bas ") + (cote.gauche?"gauche ":"/gauche ") +(cote.droite?"droite ":"/droite ")  );
+		Debug.Log( "AddcurrentState " + (cote.haut?"haut ":"/haut ") + (cote.bas?"bas ":"/bas ") + (cote.gauche?"gauche ":"/gauche ") +(cote.droite?"droite ":"/droite ")  );
 	}
 	
 	public void Substract( Cote coteGiven ) {
-		Cote coteTemp = CoteWithGravity( coteGiven );
+		Cote coteTemp = coteGiven;//CoteWithGravity( coteGiven );
 		if( coteTemp.haut )
 			cote.haut = false;
 		if( coteTemp.bas )
@@ -146,7 +147,7 @@ public class DrawPath : MonoBehaviour {
 			cote.gauche = false;
 		if( coteTemp.droite )
 			cote.droite = false;
-		//Debug.Log( "SubcurrentState " + (cote.haut?"haut ":"/haut ") + (cote.bas?"bas ":"/bas ") + (cote.gauche?"gauche ":"/gauche ") +(cote.droite?"droite ":"/droite ")  );
+		Debug.Log( "SubcurrentState " + (cote.haut?"haut ":"/haut ") + (cote.bas?"bas ":"/bas ") + (cote.gauche?"gauche ":"/gauche ") +(cote.droite?"droite ":"/droite ")  );
 	}
 	
 	void Update()
@@ -155,27 +156,35 @@ public class DrawPath : MonoBehaviour {
 		transform.position = new Vector3( Player.transform.position.x, Player.transform.position.y, -20 );
 		
 		//recupération des données de l'accelerometre
-	    curAc = Vector3.Lerp(curAc, (Input.acceleration-zeroAc), (Time.deltaTime/smooth));
-	    //GetAxisV = Mathf.Clamp(curAc.y * sensV, -1, 1);
-	    GetAxisH = Mathf.Clamp(curAc.x * sensH, -1, 1);
-	    // now use GetAxisV and GetAxisH instead of Input.GetAxis vertical and horizontal
-	    // If the horizontal and vertical directions are swapped, swap curAc.y and curAc.x
-	    // in the above equations. If some axis is going in the wrong direction, invert the
-	    // signal (use -curAc.x or -curAc.y)
-		
-		
-		if( gravityState == 0 ){
-			addHorizontalForce = GetAxisH;
-			Player.constantForce.force = new Vector3( 0, -gravityForce, 0 );
-		} else if( gravityState == 1 ){
-			addVerticalForce = GetAxisH;
-			Player.constantForce.force = new Vector3( gravityForce, 0, 0 );
-		} else if( gravityState == 2 ){
-			addHorizontalForce = -GetAxisH;
-			Player.constantForce.force = new Vector3( 0, gravityForce, 0 );
-		} else if( gravityState == 3 ){
-			addVerticalForce = -GetAxisH;
-			Player.constantForce.force = new Vector3( -gravityForce, 0, 0 );
+		Vector3 Acc = (Input.acceleration-zeroAc);
+		if( Acc.sqrMagnitude > 0.001 ) {
+		    curAc = Vector3.Lerp(curAc, Acc, (Time.deltaTime/smooth));
+		    //GetAxisV = Mathf.Clamp(curAc.y * sensV, -1, 1);
+		    GetAxisH = Mathf.Clamp(curAc.x * sensH, -1, 1);
+		    // now use GetAxisV and GetAxisH instead of Input.GetAxis vertical and horizontal
+		    // If the horizontal and vertical directions are swapped, swap curAc.y and curAc.x
+		    // in the above equations. If some axis is going in the wrong direction, invert the
+		    // signal (use -curAc.x or -curAc.y)
+			
+			if( gravityState == 0 ){
+				addHorizontalForce = GetAxisH;
+			} else if( gravityState == 1 ){
+				addVerticalForce = GetAxisH;
+			} else if( gravityState == 2 ){
+				addHorizontalForce = -GetAxisH;
+			} else if( gravityState == 3 ){
+				addVerticalForce = -GetAxisH;
+			}
+		} else {
+			if( gravityState == 0 ){
+				addHorizontalForce = Input.GetAxis("Horizontal");
+			} else if( gravityState == 1 ){
+				addVerticalForce = Input.GetAxis("Horizontal");
+			} else if( gravityState == 2 ){
+				addHorizontalForce = -Input.GetAxis("Horizontal");
+			} else if( gravityState == 3 ){
+				addVerticalForce = -Input.GetAxis("Horizontal");
+			}
 		}
 		
 		//rotation de la camera et du joueur
@@ -215,18 +224,32 @@ public class DrawPath : MonoBehaviour {
 						endPoint = false;
 						myPoints = null;
 			       		idTouch = Input.touches[0].fingerId;
-						if( cote.haut && !cote.droite && !cote.gauche )
+						Cote realCote = CoteWithGravity( cote );
+						Debug.Log( "realCote " + (realCote.haut?"haut ":"/haut ") + (realCote.bas?"bas ":"/bas ") + (realCote.gauche?"gauche ":"/gauche ") +(realCote.droite?"droite ":"/droite ")  );
+						if( realCote.haut && !realCote.droite && !realCote.gauche )
 							jumpAsked = true;
 						else {
-							Debug.Log("rotate");
-							cote.gravity = gravityState;
-							if( cote.droite )
+							//cote.gravity = gravityState;
+							if( realCote.droite )
 								gravityState--;
-							else if( cote.gauche )
+							else if( realCote.gauche )
 								gravityState++;
+							else
+								return;
+							Debug.Log("rotate" + gravityState);
 							gravityState = ( gravityState + 4 ) % 4;
-							Set( cote );
+							//Set( cote );
 							Player.rigidbody.velocity = Vector3.zero;
+							
+							if( gravityState == 0 ) {
+								Player.constantForce.force = new Vector3( 0, -gravityForce, 0 );
+							} else if( gravityState == 1 ){
+								Player.constantForce.force = new Vector3( gravityForce, 0, 0 );
+							} else if( gravityState == 2 ){
+								Player.constantForce.force = new Vector3( 0, gravityForce, 0 );
+							} else if( gravityState == 3 ){
+								Player.constantForce.force = new Vector3( -gravityForce, 0, 0 );
+							}
 							//Player.GetComponent<Player>().UpdateCollisions();
 						}
 					} else { // creation plateforme

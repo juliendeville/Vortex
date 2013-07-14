@@ -17,20 +17,24 @@ public struct Cote {
 	}
 }
 
-public struct ColliderId {
-    public int id;
+public struct ColliderCote {
+    public GameObject gameObject;
 	public Cote cote;
 	
-	public ColliderId( int idCollider, int theGravity, bool isHaut, bool isBas, bool isGauche, bool isDroite ) {
-		id = idCollider;
+	public ColliderCote( GameObject thegameobject, int theGravity, bool isHaut, bool isBas, bool isGauche, bool isDroite ) {
+		gameObject = thegameobject;
 		cote = new Cote( theGravity, isHaut, isBas, isGauche, isDroite );
+	}
+	public ColliderCote( GameObject thegameobject, Cote theCote ) {
+		gameObject = thegameobject;
+		cote = theCote;
 	}
 }
 
 public class Player : MonoBehaviour {
 	public float seuil = 0.31f;
 	private DrawPath gestion;
-	private ColliderId[] colliders;
+	private ColliderCote[] colliders;
 	public int gravity;
 
 	// Use this for initialization
@@ -47,19 +51,18 @@ public class Player : MonoBehaviour {
 	void OnCollisionEnter( Collision theCollision ){
 		Debug.Log("Collision");
 		
-	    if(theCollision.gameObject.name == "floor" ||theCollision.gameObject.name == "fixe" || theCollision.gameObject.tag == "platform" )
+	    //if(theCollision.gameObject.name == "floor" ||theCollision.gameObject.name == "fixe" || theCollision.gameObject.tag == "platform" )
 	    {	
 			gravity = gestion.gravityState;
 			
-		    int j = 0;
-		    ColliderId[] tempColliders;
+		    ColliderCote[] tempColliders;
 		
 		    if ( colliders == null || colliders.Length < 1 )
-		        tempColliders = new ColliderId[1];
+		        tempColliders = new ColliderCote[1];
 		    else
 		    {
-		        tempColliders = new ColliderId[ colliders.Length + 1 ];
-		        for( j = 0; j < colliders.Length; j++)
+		        tempColliders = new ColliderCote[ colliders.Length + 1 ];
+		        for( int j = 0; j < colliders.Length; j++)
 		            tempColliders[j] = colliders[j];
 		    }
 			colliders = tempColliders;
@@ -88,35 +91,49 @@ public class Player : MonoBehaviour {
 				setDroite = true;
 			} else 
 				setDroite = false;
-			/*
-			if( theCollision.gameObject.tag == "platform" )
-				Debug.Log( "haut" + (haut?1:0) + "bas" + (bas?1:0) + "gauche" + (gauche?1:0) + "droite" + (droite?1:0) );
 			
-			if( ( haut && gauche ) || ( haut && droite ) ) {
-				gauche = false;
-				droite = false;
-			}
-			if( ( bas && gauche ) || ( bas && droite ) ) {
-				bas = false;
-			}
-			*/
-			colliders[ colliders.Length - 1 ] = new ColliderId( theCollision.gameObject.GetInstanceID(), 0, setHaut, setBas, setGauche, setDroite );
+			//Cote theCote = gestion.CoteWithGravity( new Cote( 0, setHaut, setBas, setGauche, setDroite) );
+			Cote theCote = new Cote( 0, setHaut, setBas, setGauche, setDroite );
+			colliders[ colliders.Length - 1 ] = new ColliderCote( theCollision.gameObject, theCote );
+			gestion.Add( theCote );
 			
-			gestion.Add( new Cote( 0, setHaut, setBas, setGauche, setDroite ) );
-
+			if( colliders.Length == 0 )
+				Debug.Log( "Collisions ="+colliders.Length );
+			if( colliders.Length == 1 )
+				Debug.Log( "Collisions ="+colliders.Length + " " + colliders[0].gameObject.name );
+			if( colliders.Length == 2 )
+				Debug.Log( "Collisions ="+colliders.Length + " " + colliders[0].gameObject.name + " " + colliders[1].gameObject.name );
+			if( colliders.Length >= 3 )
+				Debug.Log( "Collisions ="+colliders.Length + " " + colliders[0].gameObject.name + " " + colliders[1].gameObject.name + " " + colliders[2].gameObject.name );
 	    }
 	}
 	
 	//consider when character is jumping .. it will exit collision.
 	void OnCollisionExit( Collision theCollision ){
 		Debug.Log("CollisionExit");
-	    if(theCollision.gameObject.name == "floor" || theCollision.gameObject.tag == "platform" )
+	    //if(theCollision.gameObject.name == "floor" ||theCollision.gameObject.name == "fixe" || theCollision.gameObject.tag == "platform" )
 	    {
-			foreach( ColliderId collider in colliders ) {
-				if( theCollision.gameObject.GetInstanceID() == collider.id ) {
+			ColliderCote[] CollidersTemp = null;
+			
+			for( int i = 0; i < colliders.Length; i++ ) {
+				ColliderCote collider = colliders[i];
+				if( theCollision.gameObject == collider.gameObject ) {
 					gestion.Substract( collider.cote );
+					CollidersTemp = new ColliderCote[colliders.Length - 1];
+					int nb = 0;
+					for( int j = 0; j < colliders.Length; j++ ) {
+						if( j != i ) {
+							CollidersTemp[nb] = colliders[j];
+							nb++;
+						}
+					}
+					
 				}
 			}
+			if( CollidersTemp != null ) {
+				colliders = CollidersTemp;
+			}
+			Debug.Log( "Collisions ="+colliders.Length );
 	    }
 	}
 }
