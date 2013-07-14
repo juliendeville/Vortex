@@ -32,15 +32,13 @@ public class DrawPath : MonoBehaviour {
 	//private float GetAxisV = 0f;
 	public float smoothingFactor = 5.5f;
 	private float addHorizontalForce = 0;
+	private float addVerticalForce = 0;
 	public float HorizontalMaxVelocity = 9f;
 	
 	//collisions et rotation
 	public int gravityState = 0;
 	public float gravityForce = 6000;
-	public bool haut = false;
-	public bool bas = false;
-	public bool gauche = false;
-	public bool droite = false;
+	public Cote cote;
 	//private GameObject cadrage;
 	//private GameObject map;
 	public float MapRotationSpeed = 5f;
@@ -52,6 +50,7 @@ public class DrawPath : MonoBehaviour {
 
 	void Start()
 	{
+		cote = new Cote( gravityState, false, false, false, false);
 		//cadrage = GameObject.FindWithTag("cadrage");
 		//map = GameObject.FindWithTag("map");
 	    ResetAxes();
@@ -66,38 +65,94 @@ public class DrawPath : MonoBehaviour {
 			mustJumpNormal = false;
 			jumpAsked = false;
 		}
-		if( addHorizontalForce < 0.5f && addHorizontalForce > -0.5f ) {
-			addHorizontalForce = 0;
-		} else if( addHorizontalForce < 1 && addHorizontalForce > -1 ) {
-			if( addHorizontalForce > 0 )
-				addHorizontalForce = 0.5f;
-			else 
-				addHorizontalForce = -0.5f;	
-		}
+		addHorizontalForce = MovementForceRestrictions( addHorizontalForce );
+		addVerticalForce = MovementForceRestrictions( addVerticalForce );
 		
-		Vector3 tvel = new Vector3( addHorizontalForce * HorizontalMaxVelocity, Player.rigidbody.velocity.y, 0 );
-		Player.rigidbody.velocity = Vector3.Lerp( Player.rigidbody.velocity, tvel, Time.deltaTime * smoothingFactor);
+		Vector3 tvel;
+		if( addHorizontalForce != 0 ){
+			tvel = new Vector3( addHorizontalForce * HorizontalMaxVelocity, Player.rigidbody.velocity.y, 0 );
+			Player.rigidbody.velocity = Vector3.Lerp( Player.rigidbody.velocity, tvel, Time.deltaTime * smoothingFactor);
+		}else if( addVerticalForce != 0 ){
+			tvel = new Vector3( Player.rigidbody.velocity.x, addVerticalForce * HorizontalMaxVelocity, 0 );
+			Player.rigidbody.velocity = Vector3.Lerp( Player.rigidbody.velocity, tvel, Time.deltaTime * smoothingFactor);
+		}
 		addHorizontalForce = 0;
+		addVerticalForce = 0;
+	}
+	
+	float MovementForceRestrictions( float force ) {
+		if( force < 0.5f && force > -0.5f ) {
+			force = 0;
+		} else if( force < 1 && force > -1 ) {
+			if( force > 0 )
+				force = 0.5f;
+			else 
+				force = -0.5f;	
+		}
+		return force;
 	}
 	
 	
-	public void setWithGravity( bool setHaut, bool setBas, bool setDroite, bool setGauche ) {
+	public Cote CoteWithGravity( Cote coteGiven ) {
+		//Debug.Log( "given " + (coteGiven.haut?"haut ":"/haut ") + (coteGiven.bas?"bas ":"/bas ") + (coteGiven.gauche?"gauche ":"/gauche ") +(coteGiven.droite?"droite ":"/droite ") + " gravCote : " + coteGiven.gravity + " gravActual : " + gravityState   );
+		Cote cotetemp = new Cote( 0, false, false, false, false );
+
+		coteGiven.gravity = ( gravityState - coteGiven.gravity + 4 ) % 4;
+		//Debug.Log( "grav final : " + coteGiven.gravity );
+		
 		//rotation selon la gravité
-		if(      ( setHaut && gravityState == 0 ) || ( setBas && gravityState == 2 ) || ( setDroite && gravityState == 3 ) || ( setGauche && gravityState == 1 ) )
-			haut = true;
-		else if( ( setHaut && gravityState == 2 ) || ( setBas && gravityState == 0 ) || ( setDroite && gravityState == 1 ) || ( setGauche && gravityState == 3 ) )
-			bas = true;
-		else if( ( setHaut && gravityState == 3 ) || ( setBas && gravityState == 1 ) || ( setDroite && gravityState == 0 ) || ( setGauche && gravityState == 2 ) )
-			droite = true;
-		else if( ( setHaut && gravityState == 1 ) || ( setBas && gravityState == 3 ) || ( setDroite && gravityState == 2 ) || ( setGauche && gravityState == 0 ) )
-			gauche = true;
+		if( ( coteGiven.haut && coteGiven.gravity == 0 ) || ( coteGiven.bas && coteGiven.gravity == 2 ) || ( coteGiven.droite && coteGiven.gravity == 3 ) || ( coteGiven.gauche && coteGiven.gravity == 1 ) )
+			cotetemp.haut = true;
+		if( ( coteGiven.haut && coteGiven.gravity == 2 ) || ( coteGiven.bas && coteGiven.gravity == 0 ) || ( coteGiven.droite && coteGiven.gravity == 1 ) || ( coteGiven.gauche && coteGiven.gravity == 3 ) )
+			cotetemp.bas = true;
+		if( ( coteGiven.haut && coteGiven.gravity == 1 ) || ( coteGiven.bas && coteGiven.gravity == 3 ) || ( coteGiven.droite && coteGiven.gravity == 0 ) || ( coteGiven.gauche && coteGiven.gravity == 2 ) )
+			cotetemp.droite = true;
+		if( ( coteGiven.haut && coteGiven.gravity == 3 ) || ( coteGiven.bas && coteGiven.gravity == 1 ) || ( coteGiven.droite && coteGiven.gravity == 2 ) || ( coteGiven.gauche && coteGiven.gravity == 0 ) )
+			cotetemp.gauche = true;
+		
+		//Debug.Log( "returned " + (cotetemp.haut?"haut ":"/haut ") + (cotetemp.bas?"bas ":"/bas ") + (cotetemp.gauche?"gauche ":"/gauche ") +(cotetemp.droite?"droite ":"/droite ")  );
+		return cotetemp;
 	}
 	
+	public void Set( Cote coteGiven ) {
+		Cote coteTemp = CoteWithGravity( coteGiven );
+		cote.haut = coteTemp.haut;
+		cote.bas = coteTemp.bas;
+		cote.gauche = coteTemp.gauche;
+		cote.droite = coteTemp.droite;
+		//Debug.Log( "SetcurrentState " + (cote.haut?"haut ":"/haut ") + (cote.bas?"bas ":"/bas ") + (cote.gauche?"gauche ":"/gauche ") +(cote.droite?"droite ":"/droite ")  );
+	}
+	
+	public void Add( Cote coteGiven ) {
+		Cote coteTemp = CoteWithGravity( coteGiven );
+		if( coteTemp.haut )
+			cote.haut = true;
+		if( coteTemp.bas )
+			cote.bas = true;
+		if( coteTemp.gauche )
+			cote.gauche = true;
+		if( coteTemp.droite )
+			cote.droite = true;
+		//Debug.Log( "AddcurrentState " + (cote.haut?"haut ":"/haut ") + (cote.bas?"bas ":"/bas ") + (cote.gauche?"gauche ":"/gauche ") +(cote.droite?"droite ":"/droite ")  );
+	}
+	
+	public void Substract( Cote coteGiven ) {
+		Cote coteTemp = CoteWithGravity( coteGiven );
+		if( coteTemp.haut )
+			cote.haut = false;
+		if( coteTemp.bas )
+			cote.bas = false;
+		if( coteTemp.gauche )
+			cote.gauche = false;
+		if( coteTemp.droite )
+			cote.droite = false;
+		//Debug.Log( "SubcurrentState " + (cote.haut?"haut ":"/haut ") + (cote.bas?"bas ":"/bas ") + (cote.gauche?"gauche ":"/gauche ") +(cote.droite?"droite ":"/droite ")  );
+	}
 	
 	void Update()
 	{
 		//la camera suit le perso
-		transform.position = new Vector3( Player.transform.position.x, 2 + Player.transform.position.y, -20 );
+		transform.position = new Vector3( Player.transform.position.x, Player.transform.position.y, -20 );
 		
 		//recupération des données de l'accelerometre
 	    curAc = Vector3.Lerp(curAc, (Input.acceleration-zeroAc), (Time.deltaTime/smooth));
@@ -107,22 +162,27 @@ public class DrawPath : MonoBehaviour {
 	    // If the horizontal and vertical directions are swapped, swap curAc.y and curAc.x
 	    // in the above equations. If some axis is going in the wrong direction, invert the
 	    // signal (use -curAc.x or -curAc.y)
-		addHorizontalForce = GetAxisH;
 		
-		//rotation de la map
+		
+		if( gravityState == 0 ){
+			addHorizontalForce = GetAxisH;
+			Player.constantForce.force = new Vector3( 0, -gravityForce, 0 );
+		} else if( gravityState == 1 ){
+			addVerticalForce = GetAxisH;
+			Player.constantForce.force = new Vector3( gravityForce, 0, 0 );
+		} else if( gravityState == 2 ){
+			addHorizontalForce = -GetAxisH;
+			Player.constantForce.force = new Vector3( 0, gravityForce, 0 );
+		} else if( gravityState == 3 ){
+			addVerticalForce = -GetAxisH;
+			Player.constantForce.force = new Vector3( -gravityForce, 0, 0 );
+		}
+		
+		//rotation de la camera et du joueur
 		var rc = transform.eulerAngles;
    		transform.rotation = Quaternion.Euler(rc.x, rc.y, Mathf.LerpAngle(rc.z, gravityState*90, MapRotationSpeed * Time.deltaTime));
 		var rp = Player.transform.eulerAngles;
    		Player.transform.rotation = Quaternion.Euler(rp.x, rp.y, Mathf.LerpAngle(rp.z, gravityState*90, MapRotationSpeed * Time.deltaTime));
-		
-		if( gravityState == 0 )
-			Player.constantForce.force = new Vector3( 0, -gravityForce, 0 );
-		else if( gravityState == 1 )
-			Player.constantForce.force = new Vector3( gravityForce, 0, 0 );
-		else if( gravityState == 2 )
-			Player.constantForce.force = new Vector3( 0, gravityForce, 0 );
-		else if( gravityState == 3 )
-			Player.constantForce.force = new Vector3( -gravityForce, 0, 0 );
 
 		//gestion des touch/swipes/gestures
 	    if ( Input.touchCount > 0 )
@@ -145,7 +205,6 @@ public class DrawPath : MonoBehaviour {
 				}
 				if( plateformeTarget != null ) {
 		       		idTouch = Input.touches[0].fingerId;
-					Debug.Log( " --> fingerId : " + idTouch );
 		           	InvokeRepeating( "setDirection", 0.01f, 0.1f );
 				} else {
 				    Vector3 temp = Camera.main.ScreenToWorldPoint( Input.touches[0].position );
@@ -156,18 +215,19 @@ public class DrawPath : MonoBehaviour {
 						endPoint = false;
 						myPoints = null;
 			       		idTouch = Input.touches[0].fingerId;
-						if( haut && !droite && !gauche )
+						if( cote.haut && !cote.droite && !cote.gauche )
 							jumpAsked = true;
 						else {
-							Debug.Log( (haut?"haut ":"/haut ") + (bas?"bas ":"/bas ") + (gauche?"gauche ":"/gauche ") +(droite?"droite ":"/droite ")  );
-							if( droite )
-								gravityState++;
-							if( gauche )
+							Debug.Log("rotate");
+							cote.gravity = gravityState;
+							if( cote.droite )
 								gravityState--;
+							else if( cote.gauche )
+								gravityState++;
 							gravityState = ( gravityState + 4 ) % 4;
+							Set( cote );
 							Player.rigidbody.velocity = Vector3.zero;
-							setWithGravity( haut,bas,droite,gauche);
-							Debug.Log( (haut?"haut ":"/haut ") + (bas?"bas ":"/bas ") + (gauche?"gauche ":"/gauche ") +(droite?"droite ":"/droite ")  );
+							//Player.GetComponent<Player>().UpdateCollisions();
 						}
 					} else { // creation plateforme
 				    	Instantiate(plateforme, temp,  Quaternion.identity);
@@ -194,7 +254,6 @@ public class DrawPath : MonoBehaviour {
 		if( plateformeTarget != null ) {
 			platform plat = plateformeTarget.GetComponent<platform>();
 			
-			Debug.Log( "RH" + directionH + " RV" + directionV );
 			if( directionH != 0 ) {
 				plat.directionH = directionH;
 				plat.triggered = true;
@@ -229,14 +288,24 @@ public class DrawPath : MonoBehaviour {
 	
 
 	void CanJump(){
-		if( jumpAsked && !air ) {
+		if( jumpAsked ) {
 			mustJumpNormal = true;
 		}
 		return;
 	}
 	
 	void JumpNormal() {
-		Player.rigidbody.AddForce(0, JumpAcc,0,ForceMode.Acceleration);
+		
+		if( gravityState == 0 ){
+			Player.rigidbody.AddForce( 0, JumpAcc, 0, ForceMode.Acceleration );
+		} else if( gravityState == 1 ){
+			Player.rigidbody.AddForce( -JumpAcc, 0, 0, ForceMode.Acceleration );
+		} else if( gravityState == 2 ){
+			Player.rigidbody.AddForce( 0, -JumpAcc, 0, ForceMode.Acceleration );
+		} else if( gravityState == 3 ){
+			Player.rigidbody.AddForce( JumpAcc, 0, 0, ForceMode.Acceleration );
+		}
+		
 	}
 	
 }

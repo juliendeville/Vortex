@@ -1,19 +1,42 @@
 using UnityEngine;
 using System.Collections;
 
+
+public struct Cote {
+	public bool haut;
+	public bool bas;
+	public bool gauche;
+	public bool droite;
+	public int gravity;
+	public Cote( int theGravity, bool isHaut, bool isBas, bool isGauche, bool isDroite ) {
+		gravity = theGravity;
+		haut = isHaut;
+		bas = isBas;
+		gauche = isGauche;
+		droite = isDroite;
+	}
+}
+
+public struct ColliderId {
+    public int id;
+	public Cote cote;
+	
+	public ColliderId( int idCollider, int theGravity, bool isHaut, bool isBas, bool isGauche, bool isDroite ) {
+		id = idCollider;
+		cote = new Cote( theGravity, isHaut, isBas, isGauche, isDroite );
+	}
+}
+
 public class Player : MonoBehaviour {
-	private int gravity = 0;
-	private bool haut = false;
-	private bool bas = false;
-	private bool gauche = false;
-	private bool droite = false;
-	public bool air = false;
 	public float seuil = 0.31f;
 	private DrawPath gestion;
+	private ColliderId[] colliders;
+	public int gravity;
 
 	// Use this for initialization
 	void Start () {
 		gestion = Camera.main.GetComponent<DrawPath>();
+		gravity = gestion.gravityState;
 	}
 	
 	// Update is called once per frame
@@ -26,9 +49,23 @@ public class Player : MonoBehaviour {
 		
 	    if(theCollision.gameObject.name == "floor" ||theCollision.gameObject.name == "fixe" || theCollision.gameObject.tag == "platform" )
 	    {	
+			gravity = gestion.gravityState;
+			
+		    int j = 0;
+		    ColliderId[] tempColliders;
+		
+		    if ( colliders == null || colliders.Length < 1 )
+		        tempColliders = new ColliderId[1];
+		    else
+		    {
+		        tempColliders = new ColliderId[ colliders.Length + 1 ];
+		        for( j = 0; j < colliders.Length; j++)
+		            tempColliders[j] = colliders[j];
+		    }
+			colliders = tempColliders;
+				
 			bool setBas, setHaut, setGauche, setDroite;
-			Debug.Log("ColliderPosition x : " + theCollision.gameObject.transform.position.x + " y : " + theCollision.gameObject.transform.position.y );
-			Debug.Log("PlayerPosition x : " + transform.position.x + " y : " + transform.position.y );
+				
 			float posY = transform.position.y + transform.localScale.y / 2 - theCollision.gameObject.transform.position.y + theCollision.gameObject.transform.localScale.y / 2;
 			if( posY >= 0 && posY < seuil ) {
 				setBas = true;
@@ -39,14 +76,14 @@ public class Player : MonoBehaviour {
 				setHaut = true;
 			} else 
 				setHaut = false;
+					
 			float posX = transform.position.x + transform.localScale.x / 2 - theCollision.gameObject.transform.position.x + theCollision.gameObject.transform.localScale.x / 2;
-			Debug.Log( "posX : " + posX );
 			if( posX <= 0 && posX > -seuil ) {
 				setGauche = true;
 			} else 
 				setGauche = false;
 			posX -= transform.localScale.x + theCollision.gameObject.transform.localScale.x;
-			Debug.Log( "posX : " + posX );
+			
 			if( posX >= 0 && posX < seuil ) {
 				setDroite = true;
 			} else 
@@ -63,10 +100,11 @@ public class Player : MonoBehaviour {
 				bas = false;
 			}
 			*/
+			colliders[ colliders.Length - 1 ] = new ColliderId( theCollision.gameObject.GetInstanceID(), 0, setHaut, setBas, setGauche, setDroite );
 			
-			gestion.setWithGravity( setHaut, setBas, setDroite, setGauche );
+			gestion.Add( new Cote( 0, setHaut, setBas, setGauche, setDroite ) );
+
 	    }
-	    
 	}
 	
 	//consider when character is jumping .. it will exit collision.
@@ -74,28 +112,11 @@ public class Player : MonoBehaviour {
 		Debug.Log("CollisionExit");
 	    if(theCollision.gameObject.name == "floor" || theCollision.gameObject.tag == "platform" )
 	    {
-			bool setBas, setHaut, setGauche, setDroite;
-			float posY = transform.position.y - theCollision.gameObject.transform.position.y;
-			if( posY >= 0 ) {
-				setBas = false;
-				setHaut = true;
-			} else {
-				setHaut = false;
-				setBas = true;
+			foreach( ColliderId collider in colliders ) {
+				if( theCollision.gameObject.GetInstanceID() == collider.id ) {
+					gestion.Substract( collider.cote );
+				}
 			}
-			float posX = transform.position.x - theCollision.gameObject.transform.position.x;
-			if( posX >= 0 && posX < seuil ) {
-				setGauche = false;
-				setDroite = true;
-			} else {
-				setDroite = false;
-				setGauche = true;
-			}
-			
-			Debug.Log( "Avant Roration" + (haut?"haut ":"/haut ") + (bas?"bas ":"/bas ") + (gauche?"gauche ":"/gauche ") +(droite?"droite ":"/droite ")  );
-			//rotation selon la gravité
-			gestion.setWithGravity( setHaut, setBas, setDroite, setGauche );
-			
 	    }
 	}
 }
