@@ -10,7 +10,7 @@ public class AnimationTexture : MonoBehaviour {
 	public Material materiau;
 	
 	void Start() {
-		if( renderer.sharedMaterial != null )
+		if( renderer != null && renderer.sharedMaterial != null )
 			materiau = renderer.material;
 	}
 	 

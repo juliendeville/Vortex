@@ -35,6 +35,7 @@ public class DrawPath : MonoBehaviour {
 	private float addHorizontalForce = 0;
 	private float addVerticalForce = 0;
 	public float HorizontalMaxVelocity = 9f;
+	private float lastJump = 0;
 	
 	//collisions et rotation
 	public int gravityState = 0;
@@ -43,6 +44,7 @@ public class DrawPath : MonoBehaviour {
 	//private GameObject cadrage;
 	//private GameObject map;
 	public float MapRotationSpeed = 5f;
+	
 	
 	void ResetAxes(){
 	    zeroAc = Input.acceleration;
@@ -60,12 +62,7 @@ public class DrawPath : MonoBehaviour {
 	}
 	
 	void FixedUpdate() {
-		CanJump();	
-		if( mustJumpNormal ){
-			JumpNormal();
-			mustJumpNormal = false;
-			jumpAsked = false;
-		}
+		CanJump();
 		addHorizontalForce = MovementForceRestrictions( addHorizontalForce );
 		addVerticalForce = MovementForceRestrictions( addVerticalForce );
 		
@@ -75,9 +72,6 @@ public class DrawPath : MonoBehaviour {
 			Player.rigidbody.velocity = Vector3.Lerp( Player.rigidbody.velocity, tvel, Time.deltaTime * smoothingFactor);
 		}else if( addVerticalForce != 0 ){
 			tvel = new Vector3( Player.rigidbody.velocity.x, addVerticalForce * HorizontalMaxVelocity, 0 );
-			Player.rigidbody.velocity = Vector3.Lerp( Player.rigidbody.velocity, tvel, Time.deltaTime * smoothingFactor);
-		} else if( CoteWithGravity(cote).haut ) {
-			tvel = new Vector3( 0, 0, 0 );
 			Player.rigidbody.velocity = Vector3.Lerp( Player.rigidbody.velocity, tvel, Time.deltaTime * smoothingFactor);
 		}
 		//animation deplacement
@@ -90,7 +84,13 @@ public class DrawPath : MonoBehaviour {
 		Player.GetComponent<Player>().Anim( i );
 		
 		addHorizontalForce = 0;
-		addVerticalForce = 0;
+		addVerticalForce = 0;	
+		
+		if( mustJumpNormal ){
+			JumpNormal();
+			mustJumpNormal = false;
+			jumpAsked = false;
+		}
 	}
 	
 	float MovementForceRestrictions( float force ) {
@@ -200,6 +200,17 @@ public class DrawPath : MonoBehaviour {
 			}
 		}
 		
+		if( Input.GetAxis("Vertical") > 0 && lastJump != Input.GetAxis("Vertical") ){
+			Debug.Log(Input.GetAxis("Vertical"));
+			Cote realCote = CoteWithGravity( cote );
+			if( realCote.haut && !realCote.droite && !realCote.gauche )
+				jumpAsked = true;
+			else {
+				Rotate(realCote);
+			}
+		}
+		lastJump = Input.GetAxis("Vertical");
+		
 		//rotation de la camera et du joueur
 		var rc = transform.eulerAngles;
    		transform.rotation = Quaternion.Euler(rc.x, rc.y, Mathf.LerpAngle(rc.z, gravityState*90, MapRotationSpeed * Time.deltaTime));
@@ -238,33 +249,11 @@ public class DrawPath : MonoBehaviour {
 						myPoints = null;
 			       		idTouch = Input.touches[0].fingerId;
 						Cote realCote = CoteWithGravity( cote );
-						//Debug.Log( "realCote " + (realCote.haut?"haut ":"/haut ") + (realCote.bas?"bas ":"/bas ") + (realCote.gauche?"gauche ":"/gauche ") +(realCote.droite?"droite ":"/droite ")  );
+						Debug.Log( "realCote " + (realCote.haut?"haut ":"/haut ") + (realCote.bas?"bas ":"/bas ") + (realCote.gauche?"gauche ":"/gauche ") +(realCote.droite?"droite ":"/droite ")  );
 						if( realCote.haut && !realCote.droite && !realCote.gauche )
 							jumpAsked = true;
 						else {
-							//cote.gravity = gravityState;
-							if( realCote.droite )
-								gravityState--;
-							else if( realCote.gauche )
-								gravityState++;
-							else
-								return;
-							//Debug.Log("rotate" + gravityState);
-							gravityState = ( gravityState + 4 ) % 4;
-							Player.GetComponent<Player>().gravity = gravityState;
-							//Set( cote );
-							Player.rigidbody.velocity = Vector3.zero;
-							
-							if( gravityState == 0 ) {
-								Player.constantForce.force = new Vector3( 0, -gravityForce, 0 );
-							} else if( gravityState == 1 ){
-								Player.constantForce.force = new Vector3( gravityForce, 0, 0 );
-							} else if( gravityState == 2 ){
-								Player.constantForce.force = new Vector3( 0, gravityForce, 0 );
-							} else if( gravityState == 3 ){
-								Player.constantForce.force = new Vector3( -gravityForce, 0, 0 );
-							}
-							//Player.GetComponent<Player>().UpdateCollisions();
+							Rotate(realCote);
 						}
 					} else { // creation plateforme
 				    	GameObject plat = Instantiate(plateforme, temp,  Quaternion.identity) as GameObject;
@@ -287,6 +276,32 @@ public class DrawPath : MonoBehaviour {
 	    {
 			cleanEnded();
 	    }
+	}
+	
+	void Rotate( Cote lacote ) {
+		//cote.gravity = gravityState;
+		if( lacote.droite )
+			gravityState--;
+		else if( lacote.gauche )
+			gravityState++;
+		else
+			return;
+		//Debug.Log("rotate" + gravityState);
+		gravityState = ( gravityState + 4 ) % 4;
+		Player.GetComponent<Player>().gravity = gravityState;
+		//Set( cote );
+		Player.rigidbody.velocity = Vector3.zero;
+		
+		if( gravityState == 0 ) {
+			Player.constantForce.force = new Vector3( 0, -gravityForce, 0 );
+		} else if( gravityState == 1 ){
+			Player.constantForce.force = new Vector3( gravityForce, 0, 0 );
+		} else if( gravityState == 2 ){
+			Player.constantForce.force = new Vector3( 0, gravityForce, 0 );
+		} else if( gravityState == 3 ){
+			Player.constantForce.force = new Vector3( -gravityForce, 0, 0 );
+		}
+		//Player.GetComponent<Player>().UpdateCollisions();
 	}
 	
 	void cleanEnded() {
@@ -330,7 +345,7 @@ public class DrawPath : MonoBehaviour {
 	}
 	
 
-	void CanJump(){
+	void CanJump(){		
 		if( jumpAsked ) {
 			mustJumpNormal = true;
 		}
@@ -338,14 +353,13 @@ public class DrawPath : MonoBehaviour {
 	}
 	
 	void JumpNormal() {
-		
-		if( gravityState == 0 ){
+		if( gravityState == 0 && Player.rigidbody.velocity.y < seuil ){
 			Player.rigidbody.AddForce( 0, JumpAcc, 0, ForceMode.Acceleration );
-		} else if( gravityState == 1 ){
+		} else if( gravityState == 1 && Player.rigidbody.velocity.x < seuil ){
 			Player.rigidbody.AddForce( -JumpAcc, 0, 0, ForceMode.Acceleration );
-		} else if( gravityState == 2 ){
+		} else if( gravityState == 2 && Player.rigidbody.velocity.y > -seuil ){
 			Player.rigidbody.AddForce( 0, -JumpAcc, 0, ForceMode.Acceleration );
-		} else if( gravityState == 3 ){
+		} else if( gravityState == 3 && Player.rigidbody.velocity.x > -seuil ){
 			Player.rigidbody.AddForce( JumpAcc, 0, 0, ForceMode.Acceleration );
 		}
 		

@@ -30,6 +30,9 @@ public class BigBullet : MonoBehaviour {
 			other.gameObject.GetComponent<platform>().triggered = true;
 			other.gameObject.GetComponent<platform>().directionH = -direction;
         	Destroy(other.gameObject);
+		} else if( other.gameObject.tag == "ennemi" ) {
+			Destroy( other.gameObject );
+			Destroy( gameObject );
 		}
     }
 	
