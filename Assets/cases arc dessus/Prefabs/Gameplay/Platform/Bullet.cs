@@ -25,6 +25,11 @@ public class Bullet : MonoBehaviour {
 		//transform.localScale = new Vector3( transform.localScale.x + transform.localScale.x * growth * Time.deltaTime, transform.localScale.y + transform.localScale.y * growth * Time.deltaTime, transform.localScale.z );
 	}
 	
+    void OnBecameInvisible() {
+        Destroy( gameObject );
+    }
+	
+	
     void OnTriggerEnter(Collider other) {
 		if( other.gameObject.tag == "platform" ) {
 			other.gameObject.GetComponent<platform>().triggered = true;
