@@ -36,22 +36,45 @@ public class Player : MonoBehaviour {
 	private DrawPath gestion;
 	private ColliderCote[] colliders;
 	public int gravity;
+	private Vector3 spawn;
+	private AnimationTexture anim;
+	private int lastdirection = 0;
 
 	// Use this for initialization
 	void Start () {
+		spawn = transform.position;
 		gestion = Camera.main.GetComponent<DrawPath>();
 		gravity = gestion.gravityState;
+		anim = gameObject.GetComponent<AnimationTexture>();
 	}
 	
 	// Update is called once per frame
 	void Update () {
+	}
 	
+	public void Anim( int direction ) {
+		Debug.Log("direction" + direction + " lastdirection" + lastdirection);
+		if( direction != lastdirection ) {
+			anim.Stop();
+			if( direction == 0 ) {
+				if( lastdirection == -1 )
+					anim.SetFrame( 0 );
+				else 
+					anim.SetFrame( 6 );
+			} else {
+				if( direction == -1 )
+					anim.Play( new int[6] { 0, 1, 2, 3, 4, 5 } );
+				else 
+					anim.Play( new int[6] { 6, 7, 8, 9, 10, 11 } );
+			}
+			lastdirection = direction;
+		}
 	}
 	
 	void OnCollisionEnter( Collision theCollision ){
-		Debug.Log("Collision");
+		//Debug.Log("Collision");
 		
-	    //if(theCollision.gameObject.name == "floor" ||theCollision.gameObject.name == "fixe" || theCollision.gameObject.tag == "platform" )
+	    if(theCollision.gameObject.name == "floor" ||theCollision.gameObject.name == "fixe" || theCollision.gameObject.tag == "platform" )
 	    {	
 			gravity = gestion.gravityState;
 			
@@ -97,6 +120,7 @@ public class Player : MonoBehaviour {
 			colliders[ colliders.Length - 1 ] = new ColliderCote( theCollision.gameObject, theCote );
 			gestion.Add( theCote );
 			
+			/*
 			if( colliders.Length == 0 )
 				Debug.Log( "Collisions ="+colliders.Length );
 			if( colliders.Length == 1 )
@@ -105,13 +129,16 @@ public class Player : MonoBehaviour {
 				Debug.Log( "Collisions ="+colliders.Length + " " + colliders[0].gameObject.name + " " + colliders[1].gameObject.name );
 			if( colliders.Length >= 3 )
 				Debug.Log( "Collisions ="+colliders.Length + " " + colliders[0].gameObject.name + " " + colliders[1].gameObject.name + " " + colliders[2].gameObject.name );
-	    }
+				*/
+	    } else if( theCollision.gameObject.tag == "Respawn" ) {
+			transform.position = spawn; 
+		}
 	}
 	
 	//consider when character is jumping .. it will exit collision.
 	void OnCollisionExit( Collision theCollision ){
-		Debug.Log("CollisionExit");
-	    //if(theCollision.gameObject.name == "floor" ||theCollision.gameObject.name == "fixe" || theCollision.gameObject.tag == "platform" )
+		//Debug.Log("CollisionExit");
+	    if(theCollision.gameObject.name == "floor" ||theCollision.gameObject.name == "fixe" || theCollision.gameObject.tag == "platform" )
 	    {
 			ColliderCote[] CollidersTemp = null;
 			
@@ -133,7 +160,7 @@ public class Player : MonoBehaviour {
 			if( CollidersTemp != null ) {
 				colliders = CollidersTemp;
 			}
-			Debug.Log( "Collisions ="+colliders.Length );
+			//Debug.Log( "Collisions ="+colliders.Length );
 	    }
 	}
 }

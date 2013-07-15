@@ -9,7 +9,7 @@ public class DrawPath : MonoBehaviour {
 	public bool endPoint = false;
 	public float refreshTouch = 0.2f;
 	public int idTouch = -1;
-	private Vector3 lastPoint = Vector3.zero;
+	private Vector2 lastPoint = Vector2.zero;
 	private int directionV;
 	private int directionH;
 	public GameObject plateforme = null;
@@ -23,11 +23,12 @@ public class DrawPath : MonoBehaviour {
 	public bool air = false;
 	
 	//accelerometer
+	public float seuil = 0.1f;
 	private Vector3 zeroAc;
 	private Vector3 curAc;
 	public float sensH = 10f;
 	//private float sensV = 10f;
-	private float smooth = 0.5f;
+	public float smoothAcc = 0.5f;
 	private float GetAxisH = 0f;
 	//private float GetAxisV = 0f;
 	public float smoothingFactor = 5.5f;
@@ -75,7 +76,19 @@ public class DrawPath : MonoBehaviour {
 		}else if( addVerticalForce != 0 ){
 			tvel = new Vector3( Player.rigidbody.velocity.x, addVerticalForce * HorizontalMaxVelocity, 0 );
 			Player.rigidbody.velocity = Vector3.Lerp( Player.rigidbody.velocity, tvel, Time.deltaTime * smoothingFactor);
+		} else if( CoteWithGravity(cote).haut ) {
+			tvel = new Vector3( 0, 0, 0 );
+			Player.rigidbody.velocity = Vector3.Lerp( Player.rigidbody.velocity, tvel, Time.deltaTime * smoothingFactor);
 		}
+		//animation deplacement
+		Vector3 actualSpeed = Player.rigidbody.velocity;
+		int i = 0;
+		if( ( actualSpeed.x > seuil && gravityState == 0 ) || ( actualSpeed.x < -seuil && gravityState == 2 ) || ( actualSpeed.y > seuil && gravityState == 1 ) || ( actualSpeed.y < -seuil && gravityState == 3 ) )
+			i = 1;
+		if( ( actualSpeed.x < -seuil && gravityState == 0 ) || ( actualSpeed.x > seuil && gravityState == 2 ) || ( actualSpeed.y < -seuil && gravityState == 1 ) || ( actualSpeed.y > seuil && gravityState == 3 ) )
+			i = -1;
+		Player.GetComponent<Player>().Anim( i );
+		
 		addHorizontalForce = 0;
 		addVerticalForce = 0;
 	}
@@ -121,7 +134,7 @@ public class DrawPath : MonoBehaviour {
 		cote.bas = coteTemp.bas;
 		cote.gauche = coteTemp.gauche;
 		cote.droite = coteTemp.droite;
-		Debug.Log( "SetcurrentState " + (cote.haut?"haut ":"/haut ") + (cote.bas?"bas ":"/bas ") + (cote.gauche?"gauche ":"/gauche ") +(cote.droite?"droite ":"/droite ")  );
+		//Debug.Log( "SetcurrentState " + (cote.haut?"haut ":"/haut ") + (cote.bas?"bas ":"/bas ") + (cote.gauche?"gauche ":"/gauche ") +(cote.droite?"droite ":"/droite ")  );
 	}
 	
 	public void Add( Cote coteGiven ) {
@@ -134,7 +147,7 @@ public class DrawPath : MonoBehaviour {
 			cote.gauche = true;
 		if( coteTemp.droite )
 			cote.droite = true;
-		Debug.Log( "AddcurrentState " + (cote.haut?"haut ":"/haut ") + (cote.bas?"bas ":"/bas ") + (cote.gauche?"gauche ":"/gauche ") +(cote.droite?"droite ":"/droite ")  );
+		//Debug.Log( "AddcurrentState " + (cote.haut?"haut ":"/haut ") + (cote.bas?"bas ":"/bas ") + (cote.gauche?"gauche ":"/gauche ") +(cote.droite?"droite ":"/droite ")  );
 	}
 	
 	public void Substract( Cote coteGiven ) {
@@ -147,7 +160,7 @@ public class DrawPath : MonoBehaviour {
 			cote.gauche = false;
 		if( coteTemp.droite )
 			cote.droite = false;
-		Debug.Log( "SubcurrentState " + (cote.haut?"haut ":"/haut ") + (cote.bas?"bas ":"/bas ") + (cote.gauche?"gauche ":"/gauche ") +(cote.droite?"droite ":"/droite ")  );
+		//Debug.Log( "SubcurrentState " + (cote.haut?"haut ":"/haut ") + (cote.bas?"bas ":"/bas ") + (cote.gauche?"gauche ":"/gauche ") +(cote.droite?"droite ":"/droite ")  );
 	}
 	
 	void Update()
@@ -158,7 +171,7 @@ public class DrawPath : MonoBehaviour {
 		//recupération des données de l'accelerometre
 		Vector3 Acc = (Input.acceleration-zeroAc);
 		if( Acc.sqrMagnitude > 0.001 ) {
-		    curAc = Vector3.Lerp(curAc, Acc, (Time.deltaTime/smooth));
+		    curAc = Vector3.Lerp(curAc, Acc, (Time.deltaTime/smoothAcc));
 		    //GetAxisV = Mathf.Clamp(curAc.y * sensV, -1, 1);
 		    GetAxisH = Mathf.Clamp(curAc.x * sensH, -1, 1);
 		    // now use GetAxisV and GetAxisH instead of Input.GetAxis vertical and horizontal
@@ -225,7 +238,7 @@ public class DrawPath : MonoBehaviour {
 						myPoints = null;
 			       		idTouch = Input.touches[0].fingerId;
 						Cote realCote = CoteWithGravity( cote );
-						Debug.Log( "realCote " + (realCote.haut?"haut ":"/haut ") + (realCote.bas?"bas ":"/bas ") + (realCote.gauche?"gauche ":"/gauche ") +(realCote.droite?"droite ":"/droite ")  );
+						//Debug.Log( "realCote " + (realCote.haut?"haut ":"/haut ") + (realCote.bas?"bas ":"/bas ") + (realCote.gauche?"gauche ":"/gauche ") +(realCote.droite?"droite ":"/droite ")  );
 						if( realCote.haut && !realCote.droite && !realCote.gauche )
 							jumpAsked = true;
 						else {
@@ -236,8 +249,9 @@ public class DrawPath : MonoBehaviour {
 								gravityState++;
 							else
 								return;
-							Debug.Log("rotate" + gravityState);
+							//Debug.Log("rotate" + gravityState);
 							gravityState = ( gravityState + 4 ) % 4;
+							Player.GetComponent<Player>().gravity = gravityState;
 							//Set( cote );
 							Player.rigidbody.velocity = Vector3.zero;
 							
@@ -253,7 +267,9 @@ public class DrawPath : MonoBehaviour {
 							//Player.GetComponent<Player>().UpdateCollisions();
 						}
 					} else { // creation plateforme
-				    	Instantiate(plateforme, temp,  Quaternion.identity);
+				    	GameObject plat = Instantiate(plateforme, temp,  Quaternion.identity) as GameObject;
+						var rotplat = plat.transform.eulerAngles;
+						plat.transform.rotation = Quaternion.Euler(rotplat.x, rotplat.y, 90 * gravityState );
 					}
 				}
 			}
@@ -287,6 +303,7 @@ public class DrawPath : MonoBehaviour {
 				Destroy( plateformeTarget );
 			}
 			plateformeTarget = null;
+			lastPoint = Vector2.zero;
 		}
 		endPoint = true;
         CancelInvoke();
@@ -294,10 +311,13 @@ public class DrawPath : MonoBehaviour {
 	}
 	
 	void setDirection() {
-		lastPoint = plateformeTarget.transform.position;
 		foreach( Touch touch in Input.touches ) {
 			if( touch.fingerId == idTouch ) {
-		    	Vector3 temp = Camera.main.ScreenToWorldPoint( touch.position );
+				if( lastPoint == Vector2.zero )
+					lastPoint = touch.position;
+		    	//Vector3 temp = Camera.main.ScreenToWorldPoint( touch.position );
+				Vector2 temp = touch.position;
+				Debug.Log( lastPoint - temp );
 				if( Mathf.Abs( lastPoint.x - temp.x ) > Mathf.Abs(lastPoint.y - temp.y)  ) {
 					directionH = Mathf.RoundToInt( Mathf.Max( Mathf.Min( temp.x - lastPoint.x, 1 ), -1 ) );
 					directionV = 0;
