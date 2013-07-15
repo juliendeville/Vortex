@@ -8,13 +8,15 @@ public class DrawPath : MonoBehaviour {
 	public Vector3[] myPoints = null;
 	public bool endPoint = false;
 	public float refreshTouch = 0.2f;
-	public int idTouch = -1;
+	public int idTouchPlatform = -1;
+	public int idTouchPlayer = -1;
 	private Vector2 lastPoint = Vector2.zero;
 	private int directionV;
 	private int directionH;
 	public GameObject plateforme = null;
 	private GameObject plateformeTarget = null;
 	public float distance = 2f;
+	public bool stopped = false;
 	
 	//saut
 	public float JumpAcc = 5.0f;
@@ -45,6 +47,9 @@ public class DrawPath : MonoBehaviour {
 	//private GameObject map;
 	public float MapRotationSpeed = 5f;
 	
+	//stop in air
+	private Vector3 SavedVelocity = Vector3.zero;
+	
 	
 	void ResetAxes(){
 	    zeroAc = Input.acceleration;
@@ -62,35 +67,40 @@ public class DrawPath : MonoBehaviour {
 	}
 	
 	void FixedUpdate() {
-		CanJump();
-		addHorizontalForce = MovementForceRestrictions( addHorizontalForce );
-		addVerticalForce = MovementForceRestrictions( addVerticalForce );
-		
-		Vector3 tvel;
-		if( addHorizontalForce != 0 ){
-			tvel = new Vector3( addHorizontalForce * HorizontalMaxVelocity, Player.rigidbody.velocity.y, 0 );
-			Player.rigidbody.velocity = Vector3.Lerp( Player.rigidbody.velocity, tvel, Time.deltaTime * smoothingFactor);
-		}else if( addVerticalForce != 0 ){
-			tvel = new Vector3( Player.rigidbody.velocity.x, addVerticalForce * HorizontalMaxVelocity, 0 );
-			Player.rigidbody.velocity = Vector3.Lerp( Player.rigidbody.velocity, tvel, Time.deltaTime * smoothingFactor);
-		}
-		//animation deplacement
-		Vector3 actualSpeed = Player.rigidbody.velocity;
 		int i = 0;
-		if( ( actualSpeed.x > seuil && gravityState == 0 ) || ( actualSpeed.x < -seuil && gravityState == 2 ) || ( actualSpeed.y > seuil && gravityState == 1 ) || ( actualSpeed.y < -seuil && gravityState == 3 ) )
-			i = 1;
-		if( ( actualSpeed.x < -seuil && gravityState == 0 ) || ( actualSpeed.x > seuil && gravityState == 2 ) || ( actualSpeed.y < -seuil && gravityState == 1 ) || ( actualSpeed.y > seuil && gravityState == 3 ) )
-			i = -1;
+		if( !stopped ) {
+			CanJump();
+			addHorizontalForce = MovementForceRestrictions( addHorizontalForce );
+			addVerticalForce = MovementForceRestrictions( addVerticalForce );
+			
+			Vector3 tvel;
+			//Debug.Log( "h: " + addHorizontalForce + " v: " + addVerticalForce );
+			if( addHorizontalForce != 0 ){
+				tvel = new Vector3( addHorizontalForce * HorizontalMaxVelocity, Player.rigidbody.velocity.y, 0 );
+				Player.rigidbody.velocity = Vector3.Lerp( Player.rigidbody.velocity, tvel, Time.deltaTime * smoothingFactor);
+			}else if( addVerticalForce != 0 ){
+				tvel = new Vector3( Player.rigidbody.velocity.x, addVerticalForce * HorizontalMaxVelocity, 0 );
+				Player.rigidbody.velocity = Vector3.Lerp( Player.rigidbody.velocity, tvel, Time.deltaTime * smoothingFactor);
+			}
+			//animation deplacement
+			Vector3 actualSpeed = Player.rigidbody.velocity;
+			if( ( actualSpeed.x > seuil && gravityState == 0 ) || ( actualSpeed.x < -seuil && gravityState == 2 ) || ( actualSpeed.y > seuil && gravityState == 1 ) || ( actualSpeed.y < -seuil && gravityState == 3 ) )
+				i = 1;
+			if( ( actualSpeed.x < -seuil && gravityState == 0 ) || ( actualSpeed.x > seuil && gravityState == 2 ) || ( actualSpeed.y < -seuil && gravityState == 1 ) || ( actualSpeed.y > seuil && gravityState == 3 ) )
+				i = -1;
+			Player.GetComponent<Player>().Anim( i );
+			
+			// on avance tout le temps
+			//addHorizontalForce = 0;
+			//addVerticalForce = 0;	
+			
+			if( mustJumpNormal ){
+				JumpNormal();
+				mustJumpNormal = false;
+				jumpAsked = false;
+			}
+		} 
 		Player.GetComponent<Player>().Anim( i );
-		
-		addHorizontalForce = 0;
-		addVerticalForce = 0;	
-		
-		if( mustJumpNormal ){
-			JumpNormal();
-			mustJumpNormal = false;
-			jumpAsked = false;
-		}
 	}
 	
 	float MovementForceRestrictions( float force ) {
@@ -163,6 +173,24 @@ public class DrawPath : MonoBehaviour {
 		//Debug.Log( "SubcurrentState " + (cote.haut?"haut ":"/haut ") + (cote.bas?"bas ":"/bas ") + (cote.gauche?"gauche ":"/gauche ") +(cote.droite?"droite ":"/droite ")  );
 	}
 	
+	void OnGUI () {
+		string msg = "Freeze !";
+		Cote realCote = CoteWithGravity( cote );
+		if( realCote.droite || realCote.gauche ) {
+			msg = "Rotate !";
+			if ( GUI.Button (new Rect (0,Screen.height- Screen.height/5,Screen.width/5,Screen.height/5), msg) ) {
+				Rotate(realCote);
+			}
+		} else {
+			if ( GUI.Button (new Rect (0,Screen.height- Screen.height/5,Screen.width/5,Screen.height/5), msg) ) {
+				Vector3 last = SavedVelocity;
+				SavedVelocity = Player.rigidbody.velocity;
+				Player.rigidbody.velocity = last;
+				stopped = !stopped;
+			}
+		}
+	}
+	
 	void Update()
 	{
 		//la camera suit le perso
@@ -178,34 +206,47 @@ public class DrawPath : MonoBehaviour {
 		    // If the horizontal and vertical directions are swapped, swap curAc.y and curAc.x
 		    // in the above equations. If some axis is going in the wrong direction, invert the
 		    // signal (use -curAc.x or -curAc.y)
-			
+			if( GetAxisH > 0 )
+				GetAxisH = 1;
+			else 
+				GetAxisH = -1;
+				
 			if( gravityState == 0 ){
-				addHorizontalForce = GetAxisH;
+				addHorizontalForce = GetAxisH;//GetAxisH;
+				addVerticalForce = 0;
 			} else if( gravityState == 1 ){
-				addVerticalForce = GetAxisH;
+				addVerticalForce = GetAxisH;//GetAxisH;
+				addHorizontalForce = 0;
 			} else if( gravityState == 2 ){
-				addHorizontalForce = -GetAxisH;
+				addHorizontalForce = -GetAxisH;//GetAxisH;
+				addVerticalForce = 0;
 			} else if( gravityState == 3 ){
-				addVerticalForce = -GetAxisH;
+				addVerticalForce = -GetAxisH;//GetAxisH;
+				addHorizontalForce = 0;
 			}
 		} else {
-			if( gravityState == 0 ){
-				addHorizontalForce = Input.GetAxis("Horizontal");
-			} else if( gravityState == 1 ){
-				addVerticalForce = Input.GetAxis("Horizontal");
-			} else if( gravityState == 2 ){
-				addHorizontalForce = -Input.GetAxis("Horizontal");
-			} else if( gravityState == 3 ){
-				addVerticalForce = -Input.GetAxis("Horizontal");
+			if( Input.GetAxis("Horizontal") != 0 ) {
+				if( gravityState == 0 ){
+					addHorizontalForce = Input.GetAxis("Horizontal");
+				} else if( gravityState == 1 ){
+					addVerticalForce = Input.GetAxis("Horizontal");
+				} else if( gravityState == 2 ){
+					addHorizontalForce = -Input.GetAxis("Horizontal");
+				} else if( gravityState == 3 ){
+					addVerticalForce = -Input.GetAxis("Horizontal");
+				}
 			}
 		}
 		
 		if( Input.GetAxis("Vertical") > 0 && lastJump != Input.GetAxis("Vertical") ){
-			Debug.Log(Input.GetAxis("Vertical"));
+			//Debug.Log(Input.GetAxis("Vertical"));
 			Cote realCote = CoteWithGravity( cote );
-			if( realCote.haut && !realCote.droite && !realCote.gauche )
-				jumpAsked = true;
-			else {
+			if( realCote.haut && !realCote.droite && !realCote.gauche ){
+				Vector3 last = SavedVelocity;
+				SavedVelocity = Player.rigidbody.velocity;
+				Player.rigidbody.velocity = last;
+				stopped = !stopped;
+			} else {
 				Rotate(realCote);
 			}
 		}
@@ -220,62 +261,132 @@ public class DrawPath : MonoBehaviour {
 		//gestion des touch/swipes/gestures
 	    if ( Input.touchCount > 0 )
 	    {
-	        if ( Input.touches[0].phase == TouchPhase.Began ){
-				Ray ray = Camera.main.ScreenPointToRay(Input.touches[0].position);
-		        	RaycastHit hit ;
-				
-				//Check if there is a collider attached already, otherwise add one on the fly
-				if(collider == null)
-					gameObject.AddComponent(typeof(BoxCollider));
-				
-	       		if (Physics.Raycast (ray, out hit)) {
-					/*
-					if(hit.collider.gameObject == Player)
-						joueur = true;
-					else */
-					if( hit.collider.gameObject.tag == "platform")
-						plateformeTarget = hit.collider.gameObject;
-				}
-				if( plateformeTarget != null ) {
-		       		idTouch = Input.touches[0].fingerId;
-		           	InvokeRepeating( "setDirection", 0.01f, 0.1f );
-				} else {
-				    Vector3 temp = Camera.main.ScreenToWorldPoint( Input.touches[0].position );
-					temp = new Vector3( Mathf.Round( temp.x ), Mathf.Round( temp.y ), 0 );
-				
-					//limiter la zone au dessus du joueur et à un rayon de 'distance'
-					if( (Player.transform.position - temp).magnitude < distance ){ // joueur
-						endPoint = false;
-						myPoints = null;
-			       		idTouch = Input.touches[0].fingerId;
-						Cote realCote = CoteWithGravity( cote );
-						Debug.Log( "realCote " + (realCote.haut?"haut ":"/haut ") + (realCote.bas?"bas ":"/bas ") + (realCote.gauche?"gauche ":"/gauche ") +(realCote.droite?"droite ":"/droite ")  );
-						if( realCote.haut && !realCote.droite && !realCote.gauche )
-							jumpAsked = true;
-						else {
-							Rotate(realCote);
-						}
-					} else { // creation plateforme
-				    	GameObject plat = Instantiate(plateforme, temp,  Quaternion.identity) as GameObject;
-						var rotplat = plat.transform.eulerAngles;
-						plat.transform.rotation = Quaternion.Euler(rotplat.x, rotplat.y, 90 * gravityState );
-					}
-				}
-			}
+			
 			bool stillThere = false;
-			foreach( Touch touch in Input.touches ) {
-				if( touch.fingerId == idTouch ) {
+			for( int i = 0; i < Input.touches.Length; i++ ) {
+				
+				if ( Input.touches[i].phase == TouchPhase.Began ){
+					Debug.Log( Time.time );
+					Debug.Log( Input.touchCount + "touches" );
+					Debug.Log( "touch" + i + " type = " + (Input.touches[i].phase== TouchPhase.Began?"Began":Input.touches[i].phase== TouchPhase.Canceled?"canceled":Input.touches[i].phase== TouchPhase.Ended?"ended":Input.touches[i].phase== TouchPhase.Moved?"moved":Input.touches[i].phase== TouchPhase.Stationary?"stationary":"unknown") );
+		        
+					Ray ray = Camera.main.ScreenPointToRay(Input.touches[i].position);
+			        	RaycastHit hit ;
+					
+					//Check if there is a collider attached already, otherwise add one on the fly
+					if(collider == null)
+						gameObject.AddComponent(typeof(BoxCollider));
+					
+					bool bg = false;
+		       		if (Physics.Raycast (ray, out hit)) {
+						if( hit.collider.gameObject.tag == "platform")
+							plateformeTarget = hit.collider.gameObject;
+						if( hit.collider.gameObject.name == "background")
+							bg = true;
+					}
+					if( plateformeTarget != null ) {
+						Debug.Log( "plateforme" );
+			       		idTouchPlatform = Input.touches[0].fingerId;
+			           	InvokeRepeating( "setDirection", 0.01f, 0.1f );
+					} else {
+						//bouton
+						if (Input.touches[i].position.x > Screen.width/5 || Input.touches[i].position.y > Screen.height/5 ) { 
+							Debug.Log( Input.touches[i].position );
+						    Vector3 temp = Camera.main.ScreenToWorldPoint( Input.touches[i].position );
+							temp = new Vector3( temp.x , temp.y, 0 );
+						
+							//limiter la zone au dessus du joueur et à un rayon de 'distance'
+							if( (Player.transform.position - temp).magnitude < distance ){ // joueur
+								/*
+								temp = new Vector3( Mathf.Round( temp.x ), Mathf.Round( temp.y ), 0 );
+								Debug.Log( "player" );
+								endPoint = false;
+								myPoints = null;
+					       		idTouchPlayer = Input.touches[0].fingerId;
+								Cote realCote = CoteWithGravity( cote );
+								//Debug.Log( "realCote " + (realCote.haut?"haut ":"/haut ") + (realCote.bas?"bas ":"/bas ") + (realCote.gauche?"gauche ":"/gauche ") +(realCote.droite?"droite ":"/droite ")  );
+								if( realCote.haut && !realCote.droite && !realCote.gauche ){
+									//jumpAsked = true;
+									Vector3 last = SavedVelocity;
+									SavedVelocity = Player.rigidbody.velocity;
+									Player.rigidbody.velocity = last;
+									stopped = !stopped;
+								} else {
+									Rotate(realCote);
+								}
+								*/
+							} else if( bg ) { // creation plateforme
+								temp = new Vector3( Mathf.Round( temp.x ), Mathf.Round( temp.y ), 0 );
+								Debug.Log( "new platforme" );
+						    	GameObject plat = Instantiate(plateforme, temp,  Quaternion.identity) as GameObject;
+								//var rotplat = plat.transform.eulerAngles;
+								//plat.transform.rotation = Quaternion.Euler(rotplat.x, rotplat.y, 90 * gravityState );
+								if( gravityState == 1 || gravityState == 3 )
+									plat.transform.localScale = new Vector3( plat.transform.localScale.y, plat.transform.localScale.x, plat.transform.localScale.z );
+							}
+						}
+					}
+				} else if( Input.touches[i].phase == TouchPhase.Ended ){
+					if( Input.touches[i].fingerId == idTouchPlatform )
+						CleanTouchPlatform();
+				}
+				
+				if( Input.touches[i].fingerId == idTouchPlayer || Input.touches[i].fingerId == idTouchPlatform ) {
 					stillThere = true;
 				}
+				
 			}
+			
 			if( !stillThere ) {
-				cleanEnded();
+				CleanTouchPlatform();
 			}
+			
 	    } 
 	    else
 	    {
-			cleanEnded();
+			//cleanEnded();
 	    }
+	}
+	
+	void CleanTouchPlayer(){
+		idTouchPlayer = -1;
+		if( SavedVelocity != Vector3.zero ) {
+			Player.rigidbody.velocity = SavedVelocity;
+			SavedVelocity = Vector3.zero;
+		}
+	}
+	
+	void CleanTouchPlatform(){
+		if( plateformeTarget != null ) {
+			platform plat = plateformeTarget.GetComponent<platform>();
+			
+			if( gravityState == 1 ) {
+				int temp = directionV;
+				directionV = directionH;
+				directionH = -temp;
+			} else if( gravityState == 2 ) {
+				directionV = -directionV;
+				directionH = -directionH;
+			} else if( gravityState == 3 ) {
+				int temp = directionV;
+				directionV = -directionH;
+				directionH = temp;
+			}
+			
+			if( directionH != 0 ) {
+				plat.directionH = directionH;
+				plat.triggered = true;
+				Destroy( plateformeTarget );
+			} else if( directionV != 0 ) {
+				plat.directionV = directionV;
+				plat.triggered = true;
+				Destroy( plateformeTarget );
+			}
+			plateformeTarget = null;
+			lastPoint = Vector2.zero;
+		}
+		endPoint = true;
+        CancelInvoke();
 	}
 	
 	void Rotate( Cote lacote ) {
@@ -304,35 +415,14 @@ public class DrawPath : MonoBehaviour {
 		//Player.GetComponent<Player>().UpdateCollisions();
 	}
 	
-	void cleanEnded() {
-		if( plateformeTarget != null ) {
-			platform plat = plateformeTarget.GetComponent<platform>();
-			
-			if( directionH != 0 ) {
-				plat.directionH = directionH;
-				plat.triggered = true;
-				Destroy( plateformeTarget );
-			} else if( directionV != 0 ) {
-				plateformeTarget.GetComponent<platform>().directionV = directionV;
-				plat.triggered = true;
-				Destroy( plateformeTarget );
-			}
-			plateformeTarget = null;
-			lastPoint = Vector2.zero;
-		}
-		endPoint = true;
-        CancelInvoke();
-		idTouch = -1;
-	}
-	
 	void setDirection() {
-		foreach( Touch touch in Input.touches ) {
-			if( touch.fingerId == idTouch ) {
+		for( int i = 0; i < Input.touches.Length; i++ ) {
+			if( Input.touches[i].fingerId == idTouchPlatform ) {
 				if( lastPoint == Vector2.zero )
-					lastPoint = touch.position;
+					lastPoint = Input.touches[i].position;
 		    	//Vector3 temp = Camera.main.ScreenToWorldPoint( touch.position );
-				Vector2 temp = touch.position;
-				Debug.Log( lastPoint - temp );
+				Vector2 temp = Input.touches[i].position;
+				//Debug.Log( lastPoint - temp );
 				if( Mathf.Abs( lastPoint.x - temp.x ) > Mathf.Abs(lastPoint.y - temp.y)  ) {
 					directionH = Mathf.RoundToInt( Mathf.Max( Mathf.Min( temp.x - lastPoint.x, 1 ), -1 ) );
 					directionV = 0;

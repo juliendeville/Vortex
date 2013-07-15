@@ -71,7 +71,7 @@ public class Player : MonoBehaviour {
 	}
 	
 	void OnCollisionEnter( Collision theCollision ){
-		Debug.Log("Collision");
+		//Debug.Log("Collision");
 		
 	    if(theCollision.gameObject.name == "floor" ||theCollision.gameObject.name == "fixe" || theCollision.gameObject.tag == "platform" )
 	    {	
@@ -116,7 +116,7 @@ public class Player : MonoBehaviour {
 			
 			//Cote theCote = gestion.CoteWithGravity( new Cote( 0, setHaut, setBas, setGauche, setDroite) );
 			Cote theCote = new Cote( 0, setHaut, setBas, setGauche, setDroite );
-			Debug.Log( theCote.ToString()  );
+			//Debug.Log( theCote.ToString()  );
 			colliders[ colliders.Length - 1 ] = new ColliderCote( theCollision.gameObject, theCote );
 			gestion.Add( theCote );
 			
@@ -132,12 +132,13 @@ public class Player : MonoBehaviour {
 				*/
 	    } else if( theCollision.gameObject.tag == "ennemi" ) {
 			transform.position = spawn; 
+			gestion.stopped = false;
 		}
 	}
 	
 	//consider when character is jumping .. it will exit collision.
 	void OnCollisionExit( Collision theCollision ){
-		Debug.Log("CollisionExit");
+		//Debug.Log("CollisionExit");
 	    if(theCollision.gameObject.name == "floor" ||theCollision.gameObject.name == "fixe" || theCollision.gameObject.tag == "platform" )
 	    {
 			ColliderCote[] CollidersTemp = null;

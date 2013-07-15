@@ -17,6 +17,9 @@ public class rampant : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
+		if( pathId >= chemin.Length ){
+			pathId = 0;
+		}
 		if( pathId < 0 || (chemin[pathId].position - transform.position).sqrMagnitude< 0.01 ){
 			pathId++;
 			if( pathId % 2 == 0 ) {
@@ -34,8 +37,26 @@ public class rampant : MonoBehaviour {
 	}
 	
 	
+	void OnCollisionEnter( Collision theCollision ){
+		
+	    if( theCollision.gameObject.tag == "platform" ) {
+			pathId++;
+			if( pathId >= chemin.Length ){
+				pathId = 0;
+			}
+			if( pathId % 2 == 0 ) {
+				//anim.Play( new int[4] { 4, 3, 2, 3 } );
+				anim.Play( new int[2] { 4, 3 } );
+			} else {
+				//anim.Play( new int[4] { 5, 6, 7, 6 } );
+				anim.Play( new int[2] { 5, 6 } );
+			}
+		}
+	}
+	
+	
 	void OnDestroy () {
-		if (Application.isPlaying) {
+		if (Application.isPlaying && Camera.mainCamera != null && Camera.mainCamera.GetComponent<Score>() != null ) {
 			Camera.mainCamera.GetComponent<Score>().score += wealth;
 		}
 	}

@@ -21,7 +21,7 @@ public class Piece : MonoBehaviour {
     }
 	
 	void OnDestroy () {
-		if (Application.isPlaying) {
+		if (Application.isPlaying && Camera.mainCamera != null && Camera.mainCamera.GetComponent<Score>() != null) {
 			Camera.mainCamera.GetComponent<Score>().score += wealth;
 		}
 	}
