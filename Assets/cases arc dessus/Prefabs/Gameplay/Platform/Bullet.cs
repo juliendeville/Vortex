@@ -7,6 +7,7 @@ public class Bullet : MonoBehaviour {
 	private float timeLeft;
 	public float speed = 5f;
 	public int direction = 1;
+	public bool vertical = false;
 	public float growth = 1.05f;
 
 	// Use this for initialization
@@ -17,7 +18,10 @@ public class Bullet : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		transform.Translate( Time.deltaTime * speed * direction, 0, 0 );
+		if( !vertical )
+			transform.Translate( Time.deltaTime * speed * direction, 0, 0 );
+		else 
+			transform.Translate( 0, Time.deltaTime * speed * direction, 0 );
 		timeLeft -= Time.deltaTime;
 		if( timeLeft < 0 ){
 			Destroy( gameObject );
@@ -33,7 +37,10 @@ public class Bullet : MonoBehaviour {
     void OnTriggerEnter(Collider other) {
 		if( other.gameObject.tag == "platform" ) {
 			other.gameObject.GetComponent<platform>().triggered = true;
-			other.gameObject.GetComponent<platform>().directionV = direction;
+			if( !vertical )
+				other.gameObject.GetComponent<platform>().directionV = direction;
+			else
+				other.gameObject.GetComponent<platform>().directionH = -direction;
         	Destroy(other.gameObject);
 		} else if( other.gameObject.tag == "ennemi" ) {
 			Destroy( other.gameObject );
